@@ -25,7 +25,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
             // Get logger
-            Relativity.API.IAPILog _logger = this.Helper.GetLoggerFactory().GetLogger().ForContext<PostInstallEventHandler>();
+            Relativity.API.IAPILog _logger = this.Helper.GetLoggerFactory().GetLogger().ForContext<PreUninstallEventHandler>();
 
             // Init general response
             kCura.EventHandler.Response response = new kCura.EventHandler.Response()
