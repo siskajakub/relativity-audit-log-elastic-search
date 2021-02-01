@@ -34,12 +34,13 @@ namespace RelativityAuditLogElasticSearchAgent
 
             // Check what needs to be done
             int workspaceId = -1;
+            int auditRecordId = -1;
             int status = -1;
             instanceContext.BeginTransaction();
             try
             {
                 // Get workspace that was synchronized latest
-                DataTable dataTable = instanceContext.ExecuteSqlStatementAsDataTable("SELECT TOP(1) [CaseArtifactID], [Status] FROM [eddsdbo].[" + this.tableName + "] WHERE [AgentArtifactID] IS NULL ORDER BY [Status] ASC, [LastUpdated] ASC");
+                DataTable dataTable = instanceContext.ExecuteSqlStatementAsDataTable("SELECT TOP(1) [CaseArtifactID], [AuditRecordID], [Status] FROM [eddsdbo].[" + this.tableName + "] WHERE [AgentArtifactID] IS NULL ORDER BY [Status] ASC, [LastUpdated] ASC");
 
                 // If there is no workspace check if table is empty and if it is, delete it
                 _logger.LogDebug("Audit Log Elastic Search, Agent ({agentId}), Workspace selection row count: {count}", agentId.ToString(), dataTable.Rows.Count.ToString());
@@ -58,6 +59,7 @@ namespace RelativityAuditLogElasticSearchAgent
                 {
                     DataRow dataRow = dataTable.Rows[0];
                     workspaceId = Convert.ToInt32(dataRow["CaseArtifactID"]);
+                    auditRecordId = Convert.ToInt32(dataRow["AuditRecordID"]);
                     status = Convert.ToInt32(dataRow["Status"]);
 
                     // Update the application management table with Agent ID lock
@@ -70,6 +72,7 @@ namespace RelativityAuditLogElasticSearchAgent
             catch (Exception e)
             {
                 instanceContext.RollbackTransaction();
+                this.RaiseMessageNoLogging("Completed.", 10);
                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentId}), application management table action querying error", agentId.ToString());
                 return;
             }
@@ -86,6 +89,7 @@ namespace RelativityAuditLogElasticSearchAgent
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentId}), Instance Settings error", agentId.ToString());
+                    this.RaiseMessageNoLogging("Completed.", 10);
                     return;
                 }
 
@@ -96,20 +100,53 @@ namespace RelativityAuditLogElasticSearchAgent
                     case 0:
                         this.RaiseMessageNoLogging(string.Format("Deleting ES index ({0})", indexName), 10);
                         _logger.LogDebug("Audit Log Elastic Search, Agent ({agentId}), deleting ES index ({indexName})", agentId.ToString(), indexName);
-                        // ToDo
+
+                        // Delete ES index
+                        //ToDo
+
+                        // Delete related row from the application management table
+                        try
+                        {
+                            SqlParameter workspaceIdParam = new SqlParameter("@workspaceId", workspaceId);
+                            instanceContext.ExecuteNonQuerySQLStatement("DELETE FROM [eddsdbo].[" + this.tableName + "] WHERE [Status] = 0 AND [CaseArtifactID] = @workspaceId", new SqlParameter[] { workspaceIdParam });
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentId}), application management table delete error", agentId.ToString());
+                            this.RaiseMessageNoLogging("Completed.", 10);
+                            return;
+                        }
                         break;
 
-                    // If the status is 1 we will be synchronizing ES index
+                    // If the status is 1 we will be synchronizing Audit Log with ES index
                     case 1:
                         this.RaiseMessageNoLogging(string.Format("Synchronizing Audit Log of Workspace ({0}) to ES index ({1})", workspaceId.ToString(), indexName), 10);
                         _logger.LogDebug("Audit Log Elastic Search, Agent ({agentId}), synchronizing Audit Log of Workspace ({workspaceId}) to ES index ({indexName})", agentId.ToString(), workspaceId.ToString(), indexName);
-                        // ToDo
+
+                        // If there is no records synchronized yet, we have to create index first
+                        if (auditRecordId == 0)
+                        {
+                            //Todo
+                        }
+                        
+                        // Synchronizing workspace Audit Log with ES index
+                        //ToDo
+
+                        // When done synchronizing update the application management table and release Agent ID lock
+                        try
+                        {
+                            SqlParameter auditRecordIdParam = new SqlParameter("@auditRecordId", auditRecordId);
+                            SqlParameter workspaceIdParam = new SqlParameter("@workspaceId", workspaceId);
+                            instanceContext.ExecuteNonQuerySQLStatement("UPDATE [eddsdbo].[" + this.tableName + "] SET [AuditRecordID] = @auditRecordId, [AgentArtifactID] = NULL, [LastUpdated] = CURRENT_TIMESTAMP WHERE [CaseArtifactID] = @workspaceId", new SqlParameter[] { auditRecordIdParam, workspaceIdParam });
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentId}), application management table update error", agentId.ToString());
+                            this.RaiseMessageNoLogging("Completed.", 10);
+                            return;
+                        }
                         break;
                 }
-
-                // When done update the application management table and release Agent ID lock
-                SqlParameter workspaceIdParam = new SqlParameter("@workspaceId", workspaceId);
-                instanceContext.ExecuteNonQuerySQLStatement("UPDATE [eddsdbo].[" + this.tableName + "] SET [AgentArtifactID] = NULL, [LastUpdated] = CURRENT_TIMESTAMP WHERE [CaseArtifactID] = @workspaceId", new SqlParameter[] { workspaceIdParam });
 
                 // Log end of Agent execution
                 this.RaiseMessageNoLogging("Completed.", 10);
