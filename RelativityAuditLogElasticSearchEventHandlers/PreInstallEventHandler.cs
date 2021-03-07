@@ -16,7 +16,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
     public class PreInstallEventHandler : kCura.EventHandler.PreInstallEventHandler
     {
         // Minimal required Relativity version
-        private string minRelativityVersion = "10.0.318.5";
+        private string MinRelativityVersion = "10.0.318.5";
 
         public override kCura.EventHandler.Response Execute()
         {
@@ -48,7 +48,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
                 // Get Relativity version
                 currentRelativityVersion = instanceContext.ExecuteSqlStatementAsScalar("SELECT [Value] FROM [eddsdbo].[Relativity] WHERE [Key] = 'Version'").ToString();
                 _logger.LogDebug("Audit Log Elastic Search, current Relativity version: {version}", currentRelativityVersion);
-                _logger.LogDebug("Audit Log Elastic Search, minimum required Relativity version: {version}", this.minRelativityVersion);
+                _logger.LogDebug("Audit Log Elastic Search, minimum required Relativity version: {version}", this.MinRelativityVersion);
             }
             catch (Exception e)
             {
@@ -60,12 +60,12 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             }
 
             // Check Relativity version requirements
-            if (new Version(currentRelativityVersion) < new Version(this.minRelativityVersion))
+            if (new Version(currentRelativityVersion) < new Version(this.MinRelativityVersion))
             {
                 _logger.LogError("Audit Log Elastic Search, old Relativity instance (version: {version})", currentRelativityVersion);
 
                 response.Success = false;
-                response.Message = string.Format("This application requires Relativity {0} or later", this.minRelativityVersion);
+                response.Message = string.Format("This application requires Relativity {0} or later", this.MinRelativityVersion);
                 return response;
             }
 

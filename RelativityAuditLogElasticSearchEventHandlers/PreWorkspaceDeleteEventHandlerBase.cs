@@ -17,7 +17,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
     public class PreWorkspaceDeleteEventHandlerBase : kCura.EventHandler.PreWorkspaceDeleteEventHandlerBase
     {
         // Application management table name
-        private string tableName = "AuditLogElasticSearch";
+        private string TableName = "AuditLogElasticSearch";
 
         public override kCura.EventHandler.Response Execute()
         {
@@ -46,7 +46,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             {
                 // Update the application management table
                 SqlParameter workspaceIdParam = new SqlParameter("@workspaceId", workspaceId);
-                instanceContext.ExecuteNonQuerySQLStatement("UPDATE [eddsdbo].[" + this.tableName + "] SET [Status] = 0, [LastUpdated] = CURRENT_TIMESTAMP WHERE [CaseArtifactID] = @workspaceId", new SqlParameter[] { workspaceIdParam });
+                instanceContext.ExecuteNonQuerySQLStatement("UPDATE [eddsdbo].[" + this.TableName + "] SET [Status] = 0, [LastUpdated] = CURRENT_TIMESTAMP WHERE [CaseArtifactID] = @workspaceId", new SqlParameter[] { workspaceIdParam });
             }
             catch (Exception e)
             {

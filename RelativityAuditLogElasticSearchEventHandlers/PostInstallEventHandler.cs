@@ -17,7 +17,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
     public class PostInstallEventHandler : kCura.EventHandler.PostInstallEventHandler
     {
         // Application management table name
-        private string tableName = "AuditLogElasticSearch";
+        private string TableName = "AuditLogElasticSearch";
 
         public override kCura.EventHandler.Response Execute()
         {
@@ -47,7 +47,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             try
             {
                 // Get application management table
-                tableExisting = instanceContext.ExecuteSqlStatementAsScalar("SELECT ISNULL((SELECT '" + this.tableName + "' FROM [INFORMATION_SCHEMA].[TABLES] WHERE [TABLE_SCHEMA] = 'eddsdbo' AND [TABLE_NAME] = '" + this.tableName + "'), '')").ToString();
+                tableExisting = instanceContext.ExecuteSqlStatementAsScalar("SELECT ISNULL((SELECT '" + this.TableName + "' FROM [INFORMATION_SCHEMA].[TABLES] WHERE [TABLE_SCHEMA] = 'eddsdbo' AND [TABLE_NAME] = '" + this.TableName + "'), '')").ToString();
             }
             catch (Exception e)
             {
@@ -59,13 +59,13 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             }
 
             // If application management table not present, create it
-            if (tableExisting != this.tableName)
+            if (tableExisting != this.TableName)
             {
                 instanceContext.BeginTransaction();
                 try
                 {
                     // Create application management table
-                    instanceContext.ExecuteNonQuerySQLStatement("CREATE TABLE [eddsdbo].[" + this.tableName + "] ([CaseArtifactID] [int] NOT NULL, [AuditRecordID] [bigint] NOT NULL, [Status] [bit] NOT NULL, [LastUpdated] [datetime] NOT NULL, [AgentArtifactID] [int] NULL)");
+                    instanceContext.ExecuteNonQuerySQLStatement("CREATE TABLE [eddsdbo].[" + this.TableName + "] ([CaseArtifactID] [int] NOT NULL, [AuditRecordID] [bigint] NOT NULL, [Status] [bit] NOT NULL, [LastUpdated] [datetime] NOT NULL, [AgentArtifactID] [int] NULL)");
                     instanceContext.CommitTransaction();
                 }
                 catch (Exception e)
@@ -85,7 +85,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             {
                 // Insert to the application management table
                 SqlParameter workspaceIdParam = new SqlParameter("@workspaceId", workspaceId);
-                instanceContext.ExecuteNonQuerySQLStatement("INSERT INTO [eddsdbo].[" + this.tableName + "] ([CaseArtifactID], [AuditRecordID], [Status], [LastUpdated]) VALUES (@workspaceId, 0, 1, CURRENT_TIMESTAMP)", new SqlParameter[] { workspaceIdParam });
+                instanceContext.ExecuteNonQuerySQLStatement("INSERT INTO [eddsdbo].[" + this.TableName + "] ([CaseArtifactID], [AuditRecordID], [Status], [LastUpdated]) VALUES (@workspaceId, 0, 1, CURRENT_TIMESTAMP)", new SqlParameter[] { workspaceIdParam });
             }
             catch (Exception e)
             {

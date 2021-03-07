@@ -17,7 +17,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
     public class PostWorkspaceCreateEventHandlerBase : kCura.EventHandler.PostWorkspaceCreateEventHandlerBase
     {
         // Application management table name
-        private string tableName = "AuditLogElasticSearch";
+        private string TableName = "AuditLogElasticSearch";
 
         public override kCura.EventHandler.Response Execute()
         {
@@ -46,7 +46,7 @@ namespace RelativityAuditLogElasticSearchEventHandlers
             {
                 // Insert to the application management table
                 SqlParameter workspaceIdParam = new SqlParameter("@workspaceId", workspaceId);
-                instanceContext.ExecuteNonQuerySQLStatement("INSERT INTO [eddsdbo].[" + this.tableName + "] ([CaseArtifactID], [AuditRecordID], [Status], [LastUpdated]) VALUES (@workspaceId, 0, 1, CURRENT_TIMESTAMP)", new SqlParameter[] { workspaceIdParam });
+                instanceContext.ExecuteNonQuerySQLStatement("INSERT INTO [eddsdbo].[" + this.TableName + "] ([CaseArtifactID], [AuditRecordID], [Status], [LastUpdated]) VALUES (@workspaceId, 0, 1, CURRENT_TIMESTAMP)", new SqlParameter[] { workspaceIdParam });
             }
             catch (Exception e)
             {
