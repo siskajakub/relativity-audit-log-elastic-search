@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace RelativityAuditLogElasticSearchEventHandlers
 {
-    [Description("Relativity Audit Log Elastic Search Pre Install EventHandler")]
+    [Description("Audit Log Elastic Search Pre Install EventHandler")]
     [Guid("4724d01d-8fdb-4cfc-be4e-57806300b001")]
 
     /*
