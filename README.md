@@ -6,9 +6,11 @@ Relativity Application to syncronize Audit Log to Elastic Search
 Create required Relativity Instance Settings entries:  
 Name | Section | Value Type | Value (example) | Description
 ---- | ------- | ---------- | --------------- | -----------
-ElasticSearchIndexPrefix | Relativity.AuditLogElasticSearch | Text | relativity- | Prefix of the ES indicies.
+ElasticSearchIndexPrefix | Relativity.AuditLogElasticSearch | Text | relativity- | Prefix of the ES indices.
+ElasticSearchIndexReplicas | Relativity.AuditLogElasticSearch | Integer 32-bit | 2 | Number of replicas for newly created ES indices.
+ElasticSearchIndexShards | Relativity.AuditLogElasticSearch | Integer 32-bit | 2 | Number of shards for newly created ES indices.
 ElasticSearchSyncSize | Relativity.AuditLogElasticSearch | Integer 32-bit | 1000000 | Positive integer, ideally multiplier of 1000.
-ElasticSearchUri | Relativity.AuditLogElasticSearch | Text | xxxxxxxxx | URI of the ES cluster node.
+ElasticSearchUris | Relativity.AuditLogElasticSearch | Text | xxxxxxxxx | URIs of the ES cluster nodes separated by a semicolon.
 
 ## 2) Compile DLL
 Download the source code and compile the code using Microsoft Visual Studio 2019.  
@@ -26,6 +28,9 @@ Multiple agants can be deployed. Each run, agent synchronizes up to ElasticSearc
 
 ## 5) Firewall
 If applicable, create firewall rule(s) allowing communication on port 9200 between ES and servers running Relativity Agent(s).
+
+# Update
+If you are updating Audit Log to Elastic Search from previous version, please re-create Audit Log Elastic Search Agent.
 
 # Synchronization with ES
 When application is installed into the particular workspace, workspace's Audit Log is automatically being synchronised to ES.  

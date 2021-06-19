@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 
@@ -29,20 +30,36 @@ namespace RelativityAuditLogElasticSearchAgent
             int agentArtifactId = this.AgentID;
             _logger.LogDebug("Audit Log Elastic Search, current Agent ID: {agentArtifactId}", agentArtifactId.ToString());
 
-            // Get ES URI instance settings
-            string elasticUri = "";
+            // Display initial message
+            this.RaiseMessageNoLogging("Getting Instance Settings.", 10);
+
+            // Get ES URI Instance Settings
+            List<Uri> elasticUris = new List<Uri>();
             try
             {
-                elasticUri = this.Helper.GetInstanceSettingBundle().GetString("Relativity.AuditLogElasticSearch", "ElasticSearchUri");
+                string[] uris = this.Helper.GetInstanceSettingBundle().GetString("Relativity.AuditLogElasticSearch", "ElasticSearchUris").Split(';');
+                foreach (string uri in uris)
+                {
+                    if (Uri.IsWellFormedUriString(uri, UriKind.Absolute))
+                    {
+                        elasticUris.Add(new Uri(uri));
+                    }
+                    else
+                    {
+                        _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchUri), single URI error ({uri})", agentArtifactId.ToString(), uri);
+                        this.RaiseMessageNoLogging(string.Format("Instance Settings error (ElasticSearchUri), single URI error ({0}).", uri), 1);
+                        return;
+                    }
+                }
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchUri)", agentArtifactId.ToString());
-                this.RaiseMessageNoLogging("Completed.", 10);
+                this.RaiseMessageNoLogging("Instance Settings error (ElasticSearchUri).", 1);
                 return;
             }
 
-            // Get ES index prefix instance settings (must by lowercase)
+            // Get ES index prefix Instance Settings (must by lowercase)
             string elasticIndexPrefix = "";
             try
             {
@@ -51,7 +68,41 @@ namespace RelativityAuditLogElasticSearchAgent
             catch (Exception e)
             {
                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchIndexPrefix)", agentArtifactId.ToString());
-                this.RaiseMessageNoLogging("Completed.", 10);
+                this.RaiseMessageNoLogging("Instance Settings error (ElasticSearchIndexPrefix).", 1);
+                return;
+            }
+
+            // Get ES index number of replicas Instance Settings
+            int elasticIndexReplicas = 1;
+            try
+            {
+                elasticIndexReplicas = this.Helper.GetInstanceSettingBundle().GetInt("Relativity.AuditLogElasticSearch", "ElasticSearchIndexReplicas").Value;
+                if (elasticIndexReplicas < 0)
+                {
+                    elasticIndexReplicas = 1;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchIndexReplicas)", agentArtifactId.ToString());
+                this.RaiseMessageNoLogging("Instance Settings error (ElasticSearchIndexReplicas).", 1);
+                return;
+            }
+
+            // Get ES index number of shards Instance Settings
+            int elasticIndexShards = 1;
+            try
+            {
+                elasticIndexShards = this.Helper.GetInstanceSettingBundle().GetInt("Relativity.AuditLogElasticSearch", "ElasticSearchIndexShards").Value;
+                if (elasticIndexShards < 0)
+                {
+                    elasticIndexShards = 1;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchIndexShards)", agentArtifactId.ToString());
+                this.RaiseMessageNoLogging("Instance Settings error (ElasticSearchIndexShards).", 1);
                 return;
             }
 
@@ -68,7 +119,7 @@ namespace RelativityAuditLogElasticSearchAgent
             catch (Exception e)
             {
                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchSyncSize)", agentArtifactId.ToString());
-                this.RaiseMessageNoLogging("Completed.", 10);
+                this.RaiseMessageNoLogging("Instance Settings error (ElasticSearchSyncSize).", 1);
                 return;
             }
 
@@ -79,10 +130,11 @@ namespace RelativityAuditLogElasticSearchAgent
             try
             {
                 int exists = instanceContext.ExecuteSqlStatementAsScalar<int>("IF OBJECT_ID('[eddsdbo].[" + this.tableName + "]', 'U') IS NOT NULL SELECT 1 ELSE SELECT 0");
-                _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), management table " + (exists == 1 ? "exists" : "does not exist"), agentArtifactId.ToString());
+                _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), application management table " + (exists == 1 ? "exists" : "does not exist"), agentArtifactId.ToString());
                 if (exists != 1)
                 {
-                    this.RaiseMessageNoLogging("Completed.", 10);
+                    _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), application management table does not exist", agentArtifactId.ToString());
+                    this.RaiseMessageNoLogging("Application management table does not exist.", 1);
                     return;
                 }
             }
@@ -92,7 +144,7 @@ namespace RelativityAuditLogElasticSearchAgent
             }
 
             _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), selecting Workspace", agentArtifactId.ToString());
-            this.RaiseMessageNoLogging("Selecting Workspace", 10);
+            this.RaiseMessageNoLogging("Selecting Workspace.", 10);
 
             // Check what needs to be done
             int workspaceId = -1;
@@ -146,7 +198,7 @@ namespace RelativityAuditLogElasticSearchAgent
             {
                 instanceContext.RollbackTransaction();
                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), application management table querying error", agentArtifactId.ToString());
-                this.RaiseMessageNoLogging("Completed.", 10);
+                this.RaiseMessageNoLogging("Application management table querying error.", 1);
                 return;
             }
 
@@ -160,13 +212,14 @@ namespace RelativityAuditLogElasticSearchAgent
                 Nest.ElasticClient elasticClient = null;
                 try
                 {
-                    elasticClient = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(elasticUri)).DefaultIndex(elasticIndexName));
+                    Elasticsearch.Net.SniffingConnectionPool pool = new Elasticsearch.Net.SniffingConnectionPool(elasticUris, true);
+                    elasticClient = new Nest.ElasticClient(new Nest.ConnectionSettings(pool).DefaultIndex(elasticIndexName));
                 }
                 catch (Exception e)
                 {
                     this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
-                    _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search connection call error ({elasticUri}, {indexName})", agentArtifactId.ToString(), elasticUri, elasticIndexName);
-                    this.RaiseMessageNoLogging("Completed.", 10);
+                    _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search connection call error ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
+                    this.RaiseMessageNoLogging(string.Format("Elastic Search connection call error ({0}, {1}).", string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName), 1);
                     return;
                 }
 
@@ -175,7 +228,7 @@ namespace RelativityAuditLogElasticSearchAgent
                     // If the status is 0 we will be deleting ES index
                     case 0:
                         _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), deleting ES index ({indexName})", agentArtifactId.ToString(), elasticIndexName);
-                        this.RaiseMessageNoLogging(string.Format("Deleting ES index ({0})", elasticIndexName), 10);
+                        this.RaiseMessageNoLogging(string.Format("Deleting ES index ({0}).", elasticIndexName), 10);
 
                         // Delete ES index
                         try
@@ -183,21 +236,21 @@ namespace RelativityAuditLogElasticSearchAgent
                             Nest.DeleteIndexResponse deleteIndexResponse = elasticClient.Indices.Delete(elasticIndexName);
                             if (deleteIndexResponse.Acknowledged)
                             {
-                                _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index deleted ({indexName})", agentArtifactId.ToString(), elasticIndexName);
+                                _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index deleted ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
                             }
                             else
                             {
                                 this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
-                                _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index deletion error ({indexName})", agentArtifactId.ToString(), elasticIndexName);
-                                this.RaiseMessageNoLogging("Completed.", 10);
+                                _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index deletion error ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
+                                this.RaiseMessageNoLogging(string.Format("Elastic Search index deletion error ({0}, {1}).", string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName), 1);
                                 return;
                             }
                         }
                         catch (Exception e)
                         {
                             this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
-                            _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search deletion call error ({elasticUri}, {indexName})", agentArtifactId.ToString(), elasticUri, elasticIndexName);
-                            this.RaiseMessageNoLogging("Completed.", 10);
+                            _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search deletion call error ({indexName})", agentArtifactId.ToString(), elasticIndexName);
+                            this.RaiseMessageNoLogging(string.Format("Elastic Search deletion call error ({0}).", elasticIndexName), 1);
                             return;
                         }
 
@@ -211,7 +264,7 @@ namespace RelativityAuditLogElasticSearchAgent
                         {
                             this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
                             _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), application management table delete error", agentArtifactId.ToString());
-                            this.RaiseMessageNoLogging("Completed.", 10);
+                            this.RaiseMessageNoLogging("Application management table delete error.", 1);
                             return;
                         }
                         break;
@@ -226,24 +279,24 @@ namespace RelativityAuditLogElasticSearchAgent
                         {
                             // Create ES index
                             try {
-                                Nest.CreateIndexResponse createIndexResponse = elasticClient.Indices.Create(elasticIndexName, c => c.Map<AuditRecord>(m => m.AutoMap()));
+                                Nest.CreateIndexResponse createIndexResponse = elasticClient.Indices.Create(elasticIndexName, c => c.Settings(s => s.NumberOfShards(elasticIndexShards).NumberOfReplicas(elasticIndexReplicas)).Map<AuditRecord>(m => m.AutoMap()));
                                 if (createIndexResponse.Acknowledged)
                                 {
-                                    _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index created ({indexName})", agentArtifactId.ToString(), elasticIndexName);
+                                    _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index created ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
                                 }
                                 else
                                 {
                                     this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
-                                    _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index creation error ({indexName}, {serverError})", agentArtifactId.ToString(), elasticIndexName, createIndexResponse.ServerError.ToString());
-                                    this.RaiseMessageNoLogging("Completed.", 10);
+                                    _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Search index creation error ({elasticUris}, {indexName}, {serverError})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName, createIndexResponse.ServerError.ToString());
+                                    this.RaiseMessageNoLogging(string.Format("Elastic Search index creation error ({0}, {1}).", string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName), 1);
                                     return;
                                 }
                             }
                             catch (Exception e)
                             {
                                 this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
-                                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search index creation call error ({elasticUri}, {indexName})", agentArtifactId.ToString(), elasticUri, elasticIndexName);
-                                this.RaiseMessageNoLogging("Completed.", 10);
+                                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search index creation call error ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
+                                this.RaiseMessageNoLogging(string.Format("Elastic Search index creation call error ({0}, {1}).", string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName), 1);
                                 return;
                             }
                         }
@@ -335,17 +388,17 @@ namespace RelativityAuditLogElasticSearchAgent
                                                     this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
                                                     foreach (Nest.BulkResponseItemBase itemWithError in bulkResponse.ItemsWithErrors)
                                                     {
-                                                        _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Serach bulk index error to index ({indexName}) on document ({docIs}:{docError})", agentArtifactId.ToString(), elasticIndexName, itemWithError.Id, itemWithError.Error.ToString());
+                                                        _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Elastic Serach bulk index error to index {indexName} ({elasticUris}) on document {docIs}:{docError}", agentArtifactId.ToString(), elasticIndexName, string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), itemWithError.Id, itemWithError.Error.ToString());
                                                     }
-                                                    this.RaiseMessageNoLogging("Completed.", 10);
+                                                    this.RaiseMessageNoLogging(string.Format("Elastic Serach bulk index error to index {0} ({1}).", elasticIndexName, string.Join(";", elasticUris.Select(x => x.ToString()).ToArray())), 1);
                                                     return;
                                                 }
                                             }
                                             catch (Exception e)
                                             {
                                                 this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
-                                                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search bulk index call error ({elasticUri}, {indexName})", agentArtifactId.ToString(), elasticUri, elasticIndexName);
-                                                this.RaiseMessageNoLogging("Completed.", 10);
+                                                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}) Elastic Search bulk index call error ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
+                                                this.RaiseMessageNoLogging(string.Format("Elastic Search bulk index call error ({0}, {1}).", string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName), 1);
                                                 return;
                                             }
                                         }
@@ -359,7 +412,7 @@ namespace RelativityAuditLogElasticSearchAgent
                             {
                                 this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
                                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), audit log table querying error", agentArtifactId.ToString());
-                                this.RaiseMessageNoLogging("Completed.", 10);
+                                this.RaiseMessageNoLogging("Audit log table querying error.", 1);
                                 return;
                             }
 
@@ -402,7 +455,7 @@ namespace RelativityAuditLogElasticSearchAgent
             catch (Exception e)
             {
                 _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), application management table update error", agentArtifactId.ToString());
-                this.RaiseMessageNoLogging("Completed.", 10);
+                this.RaiseMessageNoLogging("Application management table update error.", 1);
                 return false;
             }
 
