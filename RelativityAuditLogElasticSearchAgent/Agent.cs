@@ -59,6 +59,32 @@ namespace RelativityAuditLogElasticSearchAgent
                 return;
             }
 
+            // Get ES authentication API Key Instance Settings
+            string[] elasticApiKey = new string[] { "", "" };
+            try
+            {
+                string apiKey = this.Helper.GetInstanceSettingBundle().GetString("Relativity.AuditLogElasticSearch", "ElasticSearchApiKey");
+                if (apiKey.Length > 0)
+                {
+                    if (apiKey.Split(':').Length == 2)
+                    {
+                        elasticApiKey = apiKey.Split(':');
+                    }
+                    else
+                    {
+                        _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchApiKey), API Key format error ({apiKey})", agentArtifactId.ToString(), apiKey);
+                        this.RaiseMessageNoLogging(string.Format("Instance Settings error (ElasticSearchApiKey), API Key format error ({0}).", apiKey), 1);
+                        return;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Audit Log Elastic Search, Agent ({agentArtifactId}), Instance Settings error (ElasticSearchApiKey)", agentArtifactId.ToString());
+                this.RaiseMessageNoLogging("Instance Settings error (ElasticSearchApiKey).", 1);
+                return;
+            }
+
             // Get ES index prefix Instance Settings (must by lowercase)
             string elasticIndexPrefix = "";
             try
@@ -213,7 +239,7 @@ namespace RelativityAuditLogElasticSearchAgent
                 try
                 {
                     Elasticsearch.Net.SniffingConnectionPool pool = new Elasticsearch.Net.SniffingConnectionPool(elasticUris, true);
-                    elasticClient = new Nest.ElasticClient(new Nest.ConnectionSettings(pool).DefaultIndex(elasticIndexName));
+                    elasticClient = new Nest.ElasticClient(new Nest.ConnectionSettings(pool).DefaultIndex(elasticIndexName).ApiKeyAuthentication(elasticApiKey[0], elasticApiKey[1]));
                 }
                 catch (Exception e)
                 {

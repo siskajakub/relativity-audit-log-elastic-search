@@ -6,11 +6,12 @@ Relativity Application to syncronize Audit Log to Elastic Search
 Create required Relativity Instance Settings entries:  
 Name | Section | Value Type | Value (example) | Description
 ---- | ------- | ---------- | --------------- | -----------
+ElasticSearchUris | Relativity.AuditLogElasticSearch | Text | xxxxxxxxx | URIs of the ES cluster nodes separated by a semicolon.
+ElasticSearchApiKey | Relativity.AuditLogElasticSearch | Text | xxxx:xxxx | ES cluster authentication API Key in `id:key` format (can be empty).
 ElasticSearchIndexPrefix | Relativity.AuditLogElasticSearch | Text | relativity- | Prefix of the ES indices.
 ElasticSearchIndexReplicas | Relativity.AuditLogElasticSearch | Integer 32-bit | 2 | Number of replicas for newly created ES indices.
 ElasticSearchIndexShards | Relativity.AuditLogElasticSearch | Integer 32-bit | 2 | Number of shards for newly created ES indices.
 ElasticSearchSyncSize | Relativity.AuditLogElasticSearch | Integer 32-bit | 1000000 | Positive integer, ideally multiplier of 1000.
-ElasticSearchUris | Relativity.AuditLogElasticSearch | Text | xxxxxxxxx | URIs of the ES cluster nodes separated by a semicolon.
 
 ## 2) Compile DLL
 Download the source code and compile the code using Microsoft Visual Studio 2019.  
