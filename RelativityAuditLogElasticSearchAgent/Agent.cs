@@ -234,12 +234,12 @@ namespace RelativityAuditLogElasticSearchAgent
                 // Construct ES index name
                 string elasticIndexName = elasticIndexPrefix + workspaceId.ToString();
 
-                // Connect to ES cluster
+                // Construct connector to ES cluster
                 Nest.ElasticClient elasticClient = null;
                 try
                 {
-                    Elasticsearch.Net.SniffingConnectionPool pool = new Elasticsearch.Net.SniffingConnectionPool(elasticUris, true);
-                    elasticClient = new Nest.ElasticClient(new Nest.ConnectionSettings(pool).DefaultIndex(elasticIndexName).ApiKeyAuthentication(elasticApiKey[0], elasticApiKey[1]));
+                    Elasticsearch.Net.StaticConnectionPool pool = new Elasticsearch.Net.StaticConnectionPool(elasticUris, true);
+                    elasticClient = new Nest.ElasticClient(new Nest.ConnectionSettings(pool).DefaultIndex(elasticIndexName).ApiKeyAuthentication(elasticApiKey[0], elasticApiKey[1]).EnableHttpCompression());
                 }
                 catch (Exception e)
                 {
