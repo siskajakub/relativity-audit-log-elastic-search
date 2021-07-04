@@ -249,6 +249,20 @@ namespace RelativityAuditLogElasticSearchAgent
                     return;
                 }
 
+                // Check ES cluster connection
+                Nest.PingResponse pingResponse = elasticClient.Ping();
+                if (pingResponse.IsValid)
+                {
+                    _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), Ping succeeded ({elasticUris}, {indexName})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName);
+                }
+                else
+                {
+                    this.releaseAgentLock(agentArtifactId, auditRecordId, workspaceId);
+                    _logger.LogError("Audit Log Elastic Search, Agent ({agentArtifactId}), Ping failed, check cluster health and connection settings ({elasticUris}, {indexName}, {elasticError})", agentArtifactId.ToString(), string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName, pingResponse.DebugInformation);
+                    this.RaiseMessageNoLogging(string.Format("Elastic Search ping failed, check cluster health and connection settings ({0}, {1}, {2}).", string.Join(";", elasticUris.Select(x => x.ToString()).ToArray()), elasticIndexName, pingResponse.DebugInformation), 1);
+                    return;
+                }
+
                 switch (status)
                 {
                     // If the status is 0 we will be deleting ES index
