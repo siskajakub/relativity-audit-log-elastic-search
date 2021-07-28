@@ -32,7 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Elasticsearch.Net, Version=7.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
-      <HintPath>..\packages\Elasticsearch.Net.7.12.1\lib\net461\Elasticsearch.Net.dll</HintPath>
+      <HintPath>..\packages\Elasticsearch.Net.7.12.0\lib\net461\Elasticsearch.Net.dll</HintPath>
     </Reference>
     <Reference Include="kCura, Version=10.3.226.8, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Relativity.Other.10.3.226.8\lib\net462\kCura.dll</HintPath>
@@ -44,7 +44,7 @@
       <HintPath>..\packages\Relativity.Rsapi.10.3.226.8\lib\net462\kCura.Relativity.Client.dll</HintPath>
     </Reference>
     <Reference Include="Nest, Version=7.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
-      <HintPath>..\packages\NEST.7.11.1\lib\net461\Nest.dll</HintPath>
+      <HintPath>..\packages\NEST.7.12.0\lib\net461\Nest.dll</HintPath>
     </Reference>
     <Reference Include="Relativity.API, Version=10.3.226.8, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Relativity.Api.10.3.226.8\lib\net462\Relativity.API.dll</HintPath>
