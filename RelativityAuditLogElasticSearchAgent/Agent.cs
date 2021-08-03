@@ -386,41 +386,41 @@ namespace RelativityAuditLogElasticSearchAgent
                                 else
                                 {
                                     // Synchronizing workspace Audit Log with ES index
-                                    List<AuditRecord> AuditRecords = new List<AuditRecord>();
+                                    List<AuditRecord> auditRecords = new List<AuditRecord>();
                                     long newAuditRecordId = auditRecordId;
                                     for (int i = 0; i < dataTable.Rows.Count; i++)
                                     {
                                         // Read Audit Log data
-                                        AuditRecord AuditRecord = new AuditRecord();
+                                        AuditRecord auditRecord = new AuditRecord();
                                         DataRow dataRow = dataTable.Rows[i];
-                                        AuditRecord.AuditRecordId = Convert.ToInt64(dataRow["ID"]);
-                                        AuditRecord.TimeStamp = Convert.ToDateTime(dataRow["TimeStamp"]);
-                                        AuditRecord.ArtifactId = Convert.ToInt32(dataRow["ArtifactID"]);
-                                        AuditRecord.ActionId = Convert.ToInt32(dataRow["ActionID"]);
-                                        AuditRecord.Action = Convert.ToString(dataRow["Action"]);
-                                        AuditRecord.UserId = Convert.ToInt32(dataRow["UserID"]);
-                                        AuditRecord.User = Convert.ToString(dataRow["User"]);
-                                        AuditRecord.ExecutionTime = dataRow["ExecutionTime"] is DBNull ? default : Convert.ToInt32(dataRow["ExecutionTime"]);
-                                        AuditRecord.Details = dataRow["Details"] is DBNull ? default : Convert.ToString(dataRow["Details"]);
-                                        AuditRecord.RequestOrigination = dataRow["RequestOrigination"] is DBNull ? default : Convert.ToString(dataRow["RequestOrigination"]);
-                                        AuditRecord.RecordOrigination = dataRow["RecordOrigination"] is DBNull ? default : Convert.ToString(dataRow["RecordOrigination"]);
-                                        AuditRecords.Add(AuditRecord);
+                                        auditRecord.AuditRecordId = Convert.ToInt64(dataRow["ID"]);
+                                        auditRecord.TimeStamp = Convert.ToDateTime(dataRow["TimeStamp"]);
+                                        auditRecord.ArtifactId = Convert.ToInt32(dataRow["ArtifactID"]);
+                                        auditRecord.ActionId = Convert.ToInt32(dataRow["ActionID"]);
+                                        auditRecord.Action = Convert.ToString(dataRow["Action"]);
+                                        auditRecord.UserId = Convert.ToInt32(dataRow["UserID"]);
+                                        auditRecord.User = Convert.ToString(dataRow["User"]);
+                                        auditRecord.ExecutionTime = dataRow["ExecutionTime"] is DBNull ? default : Convert.ToInt32(dataRow["ExecutionTime"]);
+                                        auditRecord.Details = dataRow["Details"] is DBNull ? default : Convert.ToString(dataRow["Details"]);
+                                        auditRecord.RequestOrigination = dataRow["RequestOrigination"] is DBNull ? default : Convert.ToString(dataRow["RequestOrigination"]);
+                                        auditRecord.RecordOrigination = dataRow["RecordOrigination"] is DBNull ? default : Convert.ToString(dataRow["RecordOrigination"]);
+                                        auditRecords.Add(auditRecord);
 
                                         // Record last Audit Log ID
-                                        if (newAuditRecordId < AuditRecord.AuditRecordId)
+                                        if (newAuditRecordId < auditRecord.AuditRecordId)
                                         {
-                                            newAuditRecordId = AuditRecord.AuditRecordId;
+                                            newAuditRecordId = auditRecord.AuditRecordId;
                                         }
 
                                         // Index data in threshold is reached or we are at the last row
-                                        if (AuditRecords.Count >= 500 || i + 1 >= dataTable.Rows.Count)
+                                        if (auditRecords.Count >= 500 || i + 1 >= dataTable.Rows.Count)
                                         {
                                             try
                                             {
-                                                Nest.BulkResponse bulkResponse = elasticClient.Bulk(b => b.Index(elasticIndexName).IndexMany(AuditRecords, (descriptor, s) => descriptor.Id(s.AuditRecordId.ToString())));
+                                                Nest.BulkResponse bulkResponse = elasticClient.Bulk(b => b.Index(elasticIndexName).IndexMany(auditRecords, (descriptor, s) => descriptor.Id(s.AuditRecordId.ToString())));
                                                 if (!bulkResponse.Errors)
                                                 {
-                                                    AuditRecords.Clear();
+                                                    auditRecords.Clear();
                                                     _logger.LogDebug("Audit Log Elastic Search, Agent ({agentArtifactId}), documents synchronized to Elastic Serach index ({indexName})", agentArtifactId.ToString(), elasticIndexName);
                                                 }
                                                 else
