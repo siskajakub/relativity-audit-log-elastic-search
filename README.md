@@ -1,5 +1,5 @@
 # relativity-audit-log-elastic-search
-Relativity Application to syncronize Audit Log to Elastic Search
+Relativity Application to synchronize Audit Log to Elastic Search
 
 # Install
 ## 1) Create Instance Settings
